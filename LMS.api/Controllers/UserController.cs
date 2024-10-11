@@ -53,6 +53,15 @@ namespace LMS.api.Controllers
             return new JsonResult(trainees);
         }
 
+        [HttpGet("instructors")]
+        public async Task<IActionResult> GetInstructors()
+        {
+            var instructors = await _context.Users
+                                 .Where(u => u.Role == "Instructor")
+                                 .ToListAsync();
+            return new JsonResult(instructors);
+        }
+
         // Post: Create a User {Instructor,Trainees}
         [HttpPost("create")]
         public async Task<IActionResult> CreateUser([Bind("FullName,Password,Email,Role,Points")][FromBody] Users myData)
@@ -95,15 +104,12 @@ namespace LMS.api.Controllers
         [HttpPut("{Id}")]
         public async Task<IActionResult> UpdateUsers(int Id, [FromBody] Users data)
         {
-
-            var booking = new List<Users>();
-
+            var users = new List<Users>();
             data.Id = Id;
-
             _context.Update(data);
             await _context.SaveChangesAsync();
-            booking = await _context.Users.ToListAsync();
-            return new JsonResult(booking);
+            users = await _context.Users.ToListAsync();
+            return new JsonResult(users);
         }
 
     }
