@@ -83,6 +83,66 @@ namespace LMS.api.Controllers
             return new JsonResult(batches);
         }
 
-        
+        // Add a trainee to the batch
+        [HttpPost("add-trainee/{UserId}/batch/{BatchId}")]
+        public async Task<IActionResult> AddTraineeToBatch(int UserId, int BatchId)
+        {
+            var batchUser = new BatchUsers { UserId = UserId, BatchId = BatchId };
+            _context.BatchUsers.Add(batchUser);
+            await _context.SaveChangesAsync();
+            return new JsonResult(batchUser);
+        }
+
+        // Viewing all trainees in the batches
+        [HttpGet("view-trainee/batch/{BatchId}")]
+        public async Task<IActionResult> GetAllTraineesInBatch(int BatchId)
+        {
+            var usersList = new List<Users>();
+            var userIdList= await _context.BatchUsers.Where(b => b.BatchId == BatchId).ToListAsync();
+            foreach (var user in userIdList)
+            {
+                usersList.Add(await _context.Users.FindAsync(user.UserId));
+            }
+            
+            return new JsonResult(usersList);
+        }
+
+        // fetching all trainees who are not in current batch
+        [HttpGet("fetch-trainee/batch/{BatchId}")]
+        public async Task<IActionResult> GetAllTraineesNotInBatch(int BatchId)
+        {
+            var usersList = new List<Users>();
+            var userIdListInBatch = await _context.BatchUsers
+                                                  .Where(b => b.BatchId == BatchId)
+                                                  .Select(b => b.UserId)
+                                                  .ToListAsync();
+
+            usersList = await _context.Users
+                          .Where(u => !userIdListInBatch.Contains(u.Id) && u.Role == "Trainee")
+                          .ToListAsync();
+
+
+            return new JsonResult(usersList);
+        }
+
+        // remove trainee from the batch 
+        [HttpDelete("remove-trainee/batch/{BatchId}/trainee/{UserId}")]
+        public async Task<IActionResult> GetAllTraineesNotInBatch(int BatchId, int UserId)
+        {
+            var trainee = await _context.BatchUsers.Where(b=>b.BatchId == BatchId).Where(b=>b.UserId == UserId).FirstOrDefaultAsync();
+
+            if (trainee == null)
+            {
+                return NotFound(new { message = "Trainee not found." });
+            }
+
+           
+
+            _context.BatchUsers.Remove(trainee);
+            await _context.SaveChangesAsync();
+
+            return new JsonResult("Trainee removed successfully from the batch." );
+        }
+
     }
 }

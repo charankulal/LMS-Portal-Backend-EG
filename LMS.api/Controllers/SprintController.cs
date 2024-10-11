@@ -54,5 +54,36 @@ namespace LMS.api.Controllers
             return new JsonResult(sprint);
         }
 
+        // Delete the sprint by Id
+        [HttpDelete("delete-sprint/{Id}")]
+        public async Task<IActionResult> DeleteSprintById(int Id)
+        {
+            var sprint = await _context.Sprints.FindAsync(Id);
+            if (sprint != null)
+            {
+                _context.Sprints.Remove(sprint);
+            }
+            else
+            {
+                return new JsonResult("Error: sprint doesn't exist");
+            }
+
+            await _context.SaveChangesAsync();
+
+            return new JsonResult("Deleted Successfully");
+        }
+
+        // update sprint by sprint id
+        [HttpPut("update-sprint/{Id}")]
+
+        public async Task<IActionResult> UpdateSprintById(int Id, Sprints sprint)
+        {
+            sprint.Id = Id;
+            _context.Update(sprint);
+            await _context.SaveChangesAsync();
+            var sprints = await _context.Sprints.ToListAsync();
+            return new JsonResult(sprints);
+        }
+
     }
 }

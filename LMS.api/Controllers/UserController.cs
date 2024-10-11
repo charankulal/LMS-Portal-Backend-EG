@@ -36,6 +36,14 @@ namespace LMS.api.Controllers
             return new JsonResult(user);
         }
 
+        //Get: get user by email
+        [HttpGet("get-user/{Id}")]
+        public async Task<IActionResult> GetUserById(int Id)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == Id);
+            return new JsonResult(user);
+        }
+
         [HttpGet("trainees")]
         public async Task<IActionResult> GetTrainees()
         {
