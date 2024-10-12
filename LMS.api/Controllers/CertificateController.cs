@@ -1,4 +1,5 @@
-﻿using LMS.api.Models;
+﻿using LMS.api.Interfaces;
+using LMS.api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,9 +11,11 @@ namespace LMS.api.Controllers
     public class CertificateController : Controller
     {
         private readonly ApplicationDBContext _context;
-        public CertificateController(ApplicationDBContext context)
+        private readonly IEmailSender _emailSender;
+        public CertificateController(ApplicationDBContext context, IEmailSender emailSender)
         {
             _context = context;
+            _emailSender = emailSender;
         }
 
         // Create a new certificate
@@ -20,6 +23,22 @@ namespace LMS.api.Controllers
         public async Task<IActionResult> CreateNewCertificate([FromBody] Certificates data)
         {
             var certificates = new List<Certificates>();
+
+            var sprint = await _context.Sprints.FindAsync(data.SprintId);
+            var batch = await _context.Batches.FindAsync(sprint.BatchId);
+            var instructor = await _context.Users.FindAsync(batch.InstructorId);
+            var batchUsers = await _context.BatchUsers.Where(b => b.BatchId == sprint.BatchId).ToListAsync();
+
+            foreach (var batchUser in batchUsers)
+            {
+                var user = await _context.Users.FindAsync(batchUser.UserId);
+                // notifying the trainee upon adding to the batch
+                var receiver = user.Email;
+                var subject = "New post in " + batch.Name;
+                var message = "Hi " + user.FullName + ", " + instructor.FullName + "  added new certification :  " + data.Name;
+
+                await _emailSender.SendEmailAsync(receiver, subject, message);
+            }
 
             certificates = await _context.Certificates.ToListAsync();
             _context.Add(data);
@@ -76,6 +95,14 @@ namespace LMS.api.Controllers
             await _context.SaveChangesAsync();
 
             return new JsonResult("Deleted Successfully");
+        }
+
+        // get all certificates
+        [HttpGet("all")]
+        public async Task<IActionResult> getAllCertificates()
+        {
+            var certificates = await _context.Certificates.ToListAsync();
+            return new JsonResult(certificates);
         }
     }
 }

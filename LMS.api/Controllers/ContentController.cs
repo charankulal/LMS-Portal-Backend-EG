@@ -1,4 +1,5 @@
-﻿using LMS.api.Models;
+﻿using LMS.api.Interfaces;
+using LMS.api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,9 +10,11 @@ namespace LMS.api.Controllers
     public class ContentController : Controller
     {
         private readonly ApplicationDBContext _context;
-        public ContentController(ApplicationDBContext context)
+        private readonly IEmailSender _emailSender;
+        public ContentController(ApplicationDBContext context, IEmailSender emailSender)
         {
             _context = context;
+            _emailSender = emailSender;
         }
 
         // Create a new post
@@ -21,6 +24,24 @@ namespace LMS.api.Controllers
             var posts = new List<Contents>();
 
             posts = await _context.Contents.ToListAsync();
+
+            var sprint = await _context.Sprints.FindAsync(data.SprintId);
+            var batch = await _context.Batches.FindAsync(sprint.BatchId);
+            var instructor = await _context.Users.FindAsync(batch.InstructorId);
+            var batchUsers = await _context.BatchUsers.Where(b=>b.BatchId==sprint.BatchId).ToListAsync();
+
+            foreach (var batchUser in batchUsers)
+            {
+                var user = await _context.Users.FindAsync(batchUser.UserId);
+                // notifying the trainee upon adding to the batch
+                var receiver = user.Email;
+                var subject = "New post in "+ batch.Name;
+                var message = "Hi " + user.FullName + ", "+instructor.FullName + "  added new post :  "+data.Title;
+
+                await _emailSender.SendEmailAsync(receiver, subject, message);
+            }
+            
+            
             _context.Add(data);
             await _context.SaveChangesAsync();
 
