@@ -1,4 +1,6 @@
+using LMS.api.Interfaces;
 using LMS.api.Models;
+using LMS.api.Utilities;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,11 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 var AllOrigins = "AllOrigins";
 
 // Add services to the container.
-
+builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 {

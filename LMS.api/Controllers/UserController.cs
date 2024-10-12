@@ -1,4 +1,5 @@
-﻿using LMS.api.Models;
+﻿using LMS.api.Interfaces;
+using LMS.api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,10 +10,12 @@ namespace LMS.api.Controllers
     public class UserController : Controller
     {
         private readonly ApplicationDBContext _context;
+        private readonly IEmailSender _emailSender;
 
-        public UserController(ApplicationDBContext context)
+        public UserController(ApplicationDBContext context, IEmailSender emailSender)
         {
             _context = context;
+            _emailSender = emailSender;
         }
 
         // GET: get all users
@@ -44,6 +47,7 @@ namespace LMS.api.Controllers
             return new JsonResult(user);
         }
 
+        // get all trainees
         [HttpGet("trainees")]
         public async Task<IActionResult> GetTrainees()
         {
@@ -53,6 +57,7 @@ namespace LMS.api.Controllers
             return new JsonResult(trainees);
         }
 
+        // get all instructors
         [HttpGet("instructors")]
         public async Task<IActionResult> GetInstructors()
         {
@@ -68,13 +73,15 @@ namespace LMS.api.Controllers
         {
             var users = new List<Users>();
 
-            users = await _context.Users.ToListAsync();
-            //myData.Id = booking.LastOrDefault().Id + 1;
-
-
             _context.Add(myData);
             await _context.SaveChangesAsync();
 
+            // notifying the trainee upon adding to the batch
+            var receiver = myData.Email;
+            var subject = "Welcome to LMS";
+            var message = "Hi " + myData.FullName + ", You've been give access to LMS. The credentials are Email : "+myData.Email +" and Password : "+myData.Password;
+
+            await _emailSender.SendEmailAsync(receiver, subject, message);
             users = await _context.Users.ToListAsync();
 
             return new JsonResult(users);

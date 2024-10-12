@@ -1,4 +1,5 @@
-﻿using LMS.api.Models;
+﻿using LMS.api.Interfaces;
+using LMS.api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +12,11 @@ namespace LMS.api.Controllers
     public class BatchController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
-        public BatchController(ApplicationDBContext context)
+        private readonly IEmailSender _emailSender;
+        public BatchController(ApplicationDBContext context, IEmailSender emailSender)
         {
             _context = context;
+            _emailSender = emailSender;
         }
 
         // Get all batches
@@ -87,9 +90,23 @@ namespace LMS.api.Controllers
         [HttpPost("add-trainee/{UserId}/batch/{BatchId}")]
         public async Task<IActionResult> AddTraineeToBatch(int UserId, int BatchId)
         {
+            var user = await _context.Users.FindAsync(UserId);
+            var batch = await _context.Batches.FindAsync(BatchId);
+            var instructor = await _context.Users.FindAsync(batch.InstructorId);
+
+            // notifying the trainee upon adding to the batch
+            var receiver = user.Email;
+            var subject = "You're added to a new batch";
+            var message = "Hi " + user.FullName + ", You're added to " + batch.Name + " batch under " + instructor.FullName + ".";
+
+            await _emailSender.SendEmailAsync(receiver, subject, message);
+
             var batchUser = new BatchUsers { UserId = UserId, BatchId = BatchId };
             _context.BatchUsers.Add(batchUser);
             await _context.SaveChangesAsync();
+
+            
+            
             return new JsonResult(batchUser);
         }
 
@@ -130,6 +147,17 @@ namespace LMS.api.Controllers
         public async Task<IActionResult> GetAllTraineesNotInBatch(int BatchId, int UserId)
         {
             var trainee = await _context.BatchUsers.Where(b=>b.BatchId == BatchId).Where(b=>b.UserId == UserId).FirstOrDefaultAsync();
+
+            var user = await _context.Users.FindAsync(UserId);
+            var batch = await _context.Batches.FindAsync(BatchId);
+            var instructor = await _context.Users.FindAsync(batch.InstructorId);
+
+            // notifying the trainee upon adding to the batch
+            var receiver = user.Email;
+            var subject = "You're removed from the batch";
+            var message = "Hi " + user.FullName + ", You're removed from the '" + batch.Name + "' batch by " + instructor.FullName + ".";
+
+            await _emailSender.SendEmailAsync(receiver, subject, message);
 
             if (trainee == null)
             {
