@@ -179,5 +179,31 @@ namespace LMS.api.Controllers
             return new JsonResult("Trainee removed successfully from the batch." );
         }
 
+        [HttpPost("attendance")]
+        public async Task<IActionResult> SaveOrEditAttendance(Attendances data)
+        {
+            // Check if the attendance record already exists based on batchId, traineeId, and date
+            var existingAttendance = await _context.Attendances
+                .FirstOrDefaultAsync(a => a.BatchId == data.BatchId
+                                          && a.UserId == data.UserId
+                                          && a.Date == data.Date);
+
+            if (existingAttendance != null)
+            {
+
+                existingAttendance.Remarks = data.Remarks;
+                _context.Attendances.Update(existingAttendance);
+            }
+            else
+            {
+                await _context.Attendances.AddAsync(data);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
+
     }
 }
