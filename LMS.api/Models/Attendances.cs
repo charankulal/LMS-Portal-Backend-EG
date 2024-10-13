@@ -7,20 +7,14 @@ namespace LMS.api.Models
     {
         
         public int BatchId { get; set; }
-
-        [ForeignKey("BatchId")]
-        public virtual Batches? Batches { get; set; }
         
 
         
-        public int UserId { get; set; }
+        public int UserId { get; set; }  
 
-        [ForeignKey("UserId")]
-        public virtual Users? Users { get; set; }   
+        public DateOnly Date {  get; set; } 
 
-        public int Date {  get; set; }
-
-        public bool remarks { get; set; }
+        public string Remarks { get; set; }
 
     }
 }
