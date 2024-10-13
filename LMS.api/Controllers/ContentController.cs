@@ -50,6 +50,28 @@ namespace LMS.api.Controllers
             return new JsonResult(posts);
         }
 
+        // For Announcements
+        [HttpPost("announcement")]
+        public async Task<IActionResult> NewAnnounce([FromBody] Announcement data)
+        {
+            
+            var batch = await _context.Batches.FindAsync(data.BatchId);
+            var instructor = await _context.Users.FindAsync(batch.InstructorId);
+            var batchUsers = await _context.BatchUsers.Where(b => b.BatchId == data.BatchId).ToListAsync();
+
+            foreach (var batchUser in batchUsers)
+            {
+                var user = await _context.Users.FindAsync(batchUser.UserId);
+                // notifying the trainee upon adding to the batch
+                var receiver = user.Email;
+                var subject = instructor.FullName+" Announced: "+data.Subject;
+                var message = "Hi " + user.FullName + ", "+data.Message;
+
+                await _emailSender.SendEmailAsync(receiver, subject, message);
+            }
+            return new JsonResult("Success");
+        }
+
         //Get Posts by the sprint Id
         [HttpGet("view-posts/{SprintId}")]
         public async Task<IActionResult>  GetPostsBySprintId(int SprintId)
