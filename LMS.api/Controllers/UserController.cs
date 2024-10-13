@@ -1,7 +1,11 @@
 ﻿using LMS.api.Interfaces;
 using LMS.api.Models;
+using LMS.api.Utilities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace LMS.api.Controllers
 {
@@ -71,8 +75,10 @@ namespace LMS.api.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateUser([Bind("FullName,Password,Email,Role,Points")][FromBody] Users myData)
         {
-            var users = new List<Users>();
+            PasswordHasher hasher = new PasswordHasher();
 
+            var users = new List<Users>();
+            myData.Password = hasher.ComputeHash(myData.Password, SHA256.Create(), Encoding.UTF8.GetBytes("lms"));
             _context.Add(myData);
             await _context.SaveChangesAsync();
 
@@ -118,6 +124,8 @@ namespace LMS.api.Controllers
             users = await _context.Users.ToListAsync();
             return new JsonResult(users);
         }
+
+        
 
     }
 }

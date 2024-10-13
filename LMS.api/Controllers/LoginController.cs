@@ -5,10 +5,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using LMS.api.Utilities;
+using System.Text;
 
 namespace LMS.api.Controllers
 {
-    [Authorize]
+
     [Route("api/authorize")]
     [ApiController]
     public class LoginController : Controller
@@ -24,32 +27,22 @@ namespace LMS.api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel loginModel)
         {
+            PasswordHasher hasher = new PasswordHasher();
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == loginModel.Email);
+            loginModel.Password  = hasher.ComputeHash(loginModel.Password, SHA256.Create(), Encoding.UTF8.GetBytes("lms"));
 
+            Console.WriteLine(loginModel.Password);
+            Console.WriteLine(user.Password);
             if (user == null || loginModel.Password != user.Password)
             {
-                return new JsonResult( Unauthorized("Invalid login attempt."));
+                return Unauthorized("Invalid login attempt.");
             }
-
-            // Create claims (information about the user)
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role)
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // Sign the user in by creating a session
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity));
 
             return new JsonResult(Ok("Login successful"));
         }
 
-        [Authorize]
+        
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
