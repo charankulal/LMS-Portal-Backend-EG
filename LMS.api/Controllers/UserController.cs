@@ -76,7 +76,7 @@ namespace LMS.api.Controllers
         public async Task<IActionResult> CreateUser([Bind("FullName,Password,Email,Role,Points")][FromBody] Users myData)
         {
             PasswordHasher hasher = new PasswordHasher();
-
+            var password= myData.Password;
             var users = new List<Users>();
             myData.Password = hasher.ComputeHash(myData.Password, SHA256.Create(), Encoding.UTF8.GetBytes("lms"));
             _context.Add(myData);
@@ -85,7 +85,7 @@ namespace LMS.api.Controllers
             // notifying the trainee upon adding to the batch
             var receiver = myData.Email;
             var subject = "Welcome to LMS";
-            var message = "Hi " + myData.FullName + ", You've been give access to LMS. The credentials are Email : "+myData.Email +" and Password : "+myData.Password;
+            var message = "Hi " + myData.FullName + ", You've been give access to LMS. The credentials are Email : "+myData.Email +" and Password : "+password;
 
             await _emailSender.SendEmailAsync(receiver, subject, message);
             users = await _context.Users.ToListAsync();
