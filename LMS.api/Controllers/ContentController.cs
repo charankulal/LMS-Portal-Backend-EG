@@ -22,54 +22,69 @@ namespace LMS.api.Controllers
         public async Task<IActionResult> CreateNewPost([FromBody] Contents data)
         {
             var posts = new List<Contents>();
-
-            posts = await _context.Contents.ToListAsync();
-
-            var sprint = await _context.Sprints.FindAsync(data.SprintId);
-            var batch = await _context.Batches.FindAsync(sprint.BatchId);
-            var instructor = await _context.Users.FindAsync(batch.InstructorId);
-            var batchUsers = await _context.BatchUsers.Where(b=>b.BatchId==sprint.BatchId).ToListAsync();
-
-            foreach (var batchUser in batchUsers)
+            try
             {
-                var user = await _context.Users.FindAsync(batchUser.UserId);
-                // notifying the trainee upon adding to the batch
-                var receiver = user.Email;
-                var subject = "New post in "+ batch.Name;
-                var message = "Hi " + user.FullName + ", "+instructor.FullName + "  added new post :  "+data.Title;
 
-                await _emailSender.SendEmailAsync(receiver, subject, message);
+                posts = await _context.Contents.ToListAsync();
+
+                var sprint = await _context.Sprints.FindAsync(data.SprintId);
+                var batch = await _context.Batches.FindAsync(sprint.BatchId);
+                var instructor = await _context.Users.FindAsync(batch.InstructorId);
+                var batchUsers = await _context.BatchUsers.Where(b => b.BatchId == sprint.BatchId).ToListAsync();
+
+                foreach (var batchUser in batchUsers)
+                {
+                    var user = await _context.Users.FindAsync(batchUser.UserId);
+                    // notifying the trainee upon adding to the batch
+                    var receiver = user.Email;
+                    var subject = "New post in " + batch.Name;
+                    var message = "Hi " + user.FullName + ", " + instructor.FullName + "  added new post :  " + data.Title;
+
+                    await _emailSender.SendEmailAsync(receiver, subject, message);
+                }
+
+
+                _context.Add(data);
+                await _context.SaveChangesAsync();
+
+                posts = await _context.Contents.ToListAsync();
+
+                return new JsonResult(posts);
             }
-            
-            
-            _context.Add(data);
-            await _context.SaveChangesAsync();
-
-            posts = await _context.Contents.ToListAsync();
-
-            return new JsonResult(posts);
+            catch (Exception ex)
+            {
+                ex.ToString();
+                return BadRequest(ex.Message);
+            }
         }
 
         // For Announcements
         [HttpPost("announcement")]
         public async Task<IActionResult> NewAnnounce([FromBody] Announcement data)
         {
-            
-            var batch = await _context.Batches.FindAsync(data.BatchId);
-            var instructor = await _context.Users.FindAsync(batch.InstructorId);
-            var batchUsers = await _context.BatchUsers.Where(b => b.BatchId == data.BatchId).ToListAsync();
-
-            foreach (var batchUser in batchUsers)
+            try
             {
-                var user = await _context.Users.FindAsync(batchUser.UserId);
-                // notifying the trainee upon adding to the batch
-                var receiver = user.Email;
-                var subject = instructor.FullName+" Announced: "+data.Subject;
-                var message = "Hi " + user.FullName + ", "+data.Message;
+                var batch = await _context.Batches.FindAsync(data.BatchId);
+                var instructor = await _context.Users.FindAsync(batch.InstructorId);
+                var batchUsers = await _context.BatchUsers.Where(b => b.BatchId == data.BatchId).ToListAsync();
 
-                await _emailSender.SendEmailAsync(receiver, subject, message);
+                foreach (var batchUser in batchUsers)
+                {
+                    var user = await _context.Users.FindAsync(batchUser.UserId);
+                    // notifying the trainee upon adding to the batch
+                    var receiver = user.Email;
+                    var subject = instructor.FullName + " Announced: " + data.Subject;
+                    var message = "Hi " + user.FullName + ", " + data.Message;
+
+                    await _emailSender.SendEmailAsync(receiver, subject, message);
+                }
+                return new JsonResult("Success");
             }
-            return new JsonResult("Success");
+            catch (Exception ex)
+            {
+                ex.ToString();
+                return BadRequest(ex.Message);
+            }
         }
 
         //Get Posts by the sprint Id
@@ -115,7 +130,7 @@ namespace LMS.api.Controllers
             }
             else
             {
-                return new JsonResult("Error: post doesn't exist");
+                return NotFound("Error: post doesn't exist");
             }
 
             await _context.SaveChangesAsync();

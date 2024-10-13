@@ -24,29 +24,36 @@ namespace LMS.api.Controllers
         {
             var certificates = new List<Certificates>();
 
-            var sprint = await _context.Sprints.FindAsync(data.SprintId);
-            var batch = await _context.Batches.FindAsync(sprint.BatchId);
-            var instructor = await _context.Users.FindAsync(batch.InstructorId);
-            var batchUsers = await _context.BatchUsers.Where(b => b.BatchId == sprint.BatchId).ToListAsync();
-
-            foreach (var batchUser in batchUsers)
+            try
             {
-                var user = await _context.Users.FindAsync(batchUser.UserId);
-                // notifying the trainee upon adding to the batch
-                var receiver = user.Email;
-                var subject = "New post in " + batch.Name;
-                var message = "Hi " + user.FullName + ", " + instructor.FullName + "  added new certification :  " + data.Name;
+                var sprint = await _context.Sprints.FindAsync(data.SprintId);
+                var batch = await _context.Batches.FindAsync(sprint.BatchId);
+                var instructor = await _context.Users.FindAsync(batch.InstructorId);
+                var batchUsers = await _context.BatchUsers.Where(b => b.BatchId == sprint.BatchId).ToListAsync();
 
-                await _emailSender.SendEmailAsync(receiver, subject, message);
+                foreach (var batchUser in batchUsers)
+                {
+                    var user = await _context.Users.FindAsync(batchUser.UserId);
+                    // notifying the trainee upon adding to the batch
+                    var receiver = user.Email;
+                    var subject = "New post in " + batch.Name;
+                    var message = "Hi " + user.FullName + ", " + instructor.FullName + "  added new certification :  " + data.Name;
+
+                    await _emailSender.SendEmailAsync(receiver, subject, message);
+                }
+
+                certificates = await _context.Certificates.ToListAsync();
+                _context.Add(data);
+                await _context.SaveChangesAsync();
+
+                certificates = await _context.Certificates.ToListAsync();
+
+                return new JsonResult(certificates);
+            }catch(Exception ex)
+            {
+                ex.ToString();
+                return BadRequest(ex.Message);
             }
-
-            certificates = await _context.Certificates.ToListAsync();
-            _context.Add(data);
-            await _context.SaveChangesAsync();
-
-            certificates = await _context.Certificates.ToListAsync();
-
-            return new JsonResult(certificates);
         }
 
         // get certiifcates by sprint id
@@ -71,11 +78,15 @@ namespace LMS.api.Controllers
 
         public async Task<IActionResult> UpdateCertificateById(int Id, Certificates certiifcate)
         {
-            certiifcate.Id = Id;
-            _context.Update(certiifcate);
-            await _context.SaveChangesAsync();
-            var certificates = await _context.Certificates.ToListAsync();
-            return new JsonResult(certificates);
+            try
+            {
+                certiifcate.Id = Id;
+                _context.Update(certiifcate);
+                await _context.SaveChangesAsync();
+                var certificates = await _context.Certificates.ToListAsync();
+                return new JsonResult(certificates);
+            }
+            catch(Exception ex) { ex.ToString(); return BadRequest(ex.Message); }
         }
 
         // Delete the certificate by Id
@@ -89,7 +100,7 @@ namespace LMS.api.Controllers
             }
             else
             {
-                return new JsonResult("Error: Certificate doesn't exist");
+                return NotFound("Error: Certificate doesn't exist");
             }
 
             await _context.SaveChangesAsync();
