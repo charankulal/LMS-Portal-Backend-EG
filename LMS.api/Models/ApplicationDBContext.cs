@@ -25,16 +25,9 @@ namespace LMS.api.Models
 
         public DbSet<Attendances> Attendances { get; set; }
 
-        public DbSet<UserCertifications> UserCertifications { get; set; }
-
-        public DbSet<UserContentTracks> UserContentTracks { get; set; }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
 
         {
-            
-
-
             // Composite primary key for BatchUsers
             modelBuilder.Entity<BatchUsers>()
 
@@ -48,26 +41,6 @@ namespace LMS.api.Models
                 .HasKey(at => new { at.BatchId, at.UserId, at.Date }); 
 
             base.OnModelCreating(modelBuilder);
-
-            
-
-            // Composite primary key UserCertification
-
-            modelBuilder.Entity<UserCertifications>()
-
-                .HasKey(uc => new { uc.UserId, uc.CertificateId }); 
-
-            base.OnModelCreating(modelBuilder);
-
-            // Composite primary key UserContentTracks
-
-            modelBuilder.Entity<UserContentTracks>()
-
-                .HasKey(uc => new { uc.UserId, uc.ContentId });
-
-            base.OnModelCreating(modelBuilder);
         }
-
-
         }
     }

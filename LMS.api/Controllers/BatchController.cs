@@ -35,6 +35,8 @@ namespace LMS.api.Controllers
         public async Task<IActionResult> GetBatchById(int Id)
         {
             var batch = await _context.Batches.FindAsync(Id);
+            if (batch == null)
+                return BadRequest("Batch doen't exist");
             return new JsonResult(batch);
         }
 
@@ -58,7 +60,7 @@ namespace LMS.api.Controllers
             }
             else
             {
-                return new JsonResult("Error: batch doesn't exist");
+                return NotFound("Error: batch doesn't exist");
             }
 
             await _context.SaveChangesAsync();
@@ -72,10 +74,18 @@ namespace LMS.api.Controllers
         public async Task<IActionResult> UpdateBatchById(int Id, Batches batch)
         {
             batch.Id = Id;
-            _context.Update(batch);
-            await _context.SaveChangesAsync();
-            var batches = await _context.Batches.ToListAsync();
-            return new JsonResult(batches);
+            try
+            {
+                _context.Update(batch);
+                await _context.SaveChangesAsync();
+                var batches = await _context.Batches.ToListAsync();
+                return new JsonResult(batches);
+            }
+            catch (Exception ex)
+            {
+                ex.ToString();
+                return BadRequest(ex.Message);
+            }
         }
 
         // Get all batches created by particular instructor
@@ -163,9 +173,6 @@ namespace LMS.api.Controllers
             {
                 return NotFound(new { message = "Trainee not found." });
             }
-
-           
-
             _context.BatchUsers.Remove(trainee);
             await _context.SaveChangesAsync();
 

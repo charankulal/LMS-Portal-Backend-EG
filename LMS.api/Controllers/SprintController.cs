@@ -1,4 +1,5 @@
 ﻿using LMS.api.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -65,7 +66,7 @@ namespace LMS.api.Controllers
             }
             else
             {
-                return new JsonResult("Error: sprint doesn't exist");
+                return NotFound("Error: sprint doesn't exist");
             }
 
             await _context.SaveChangesAsync();

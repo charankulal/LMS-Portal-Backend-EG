@@ -55,42 +55,78 @@ namespace LMS.api.Controllers
         [HttpGet("trainees")]
         public async Task<IActionResult> GetTrainees()
         {
-            var trainees = await _context.Users
+            try
+            {
+                var trainees = await _context.Users
                                  .Where(u => u.Role == "Trainee")
                                  .ToListAsync();
-            return new JsonResult(trainees);
+                return new JsonResult(trainees);
+            }
+            catch (Exception ex)
+            {
+                ex.ToString();
+                return NotFound(ex.Message);
+            }
         }
 
         // get all instructors
         [HttpGet("instructors")]
         public async Task<IActionResult> GetInstructors()
         {
-            var instructors = await _context.Users
-                                 .Where(u => u.Role == "Instructor")
-                                 .ToListAsync();
-            return new JsonResult(instructors);
+            try
+            {
+                var instructors = await _context.Users
+                                     .Where(u => u.Role == "Instructor")
+                                     .ToListAsync();
+                return new JsonResult(instructors);
+            }
+            catch (Exception ex)
+            {
+                ex.ToString();
+                return NotFound(ex.Message);
+            }
         }
 
         // Post: Create a User {Instructor,Trainees}
         [HttpPost("create")]
         public async Task<IActionResult> CreateUser([Bind("FullName,Password,Email,Role,Points")][FromBody] Users myData)
         {
-            PasswordHasher hasher = new PasswordHasher();
-            var password= myData.Password;
-            var users = new List<Users>();
-            myData.Password = hasher.ComputeHash(myData.Password, SHA256.Create(), Encoding.UTF8.GetBytes("lms"));
-            _context.Add(myData);
-            await _context.SaveChangesAsync();
+            try
+            {
+                PasswordHasher hasher = new PasswordHasher();
+                var password = myData.Password;
+                var users = new List<Users>();
+                myData.Password = hasher.ComputeHash(myData.Password, SHA256.Create(), Encoding.UTF8.GetBytes("lms"));
+                _context.Add(myData);
+                await _context.SaveChangesAsync();
 
-            // notifying the trainee upon adding to the batch
-            var receiver = myData.Email;
-            var subject = "Welcome to LMS";
-            var message = "Hi " + myData.FullName + ", You've been give access to LMS. The credentials are Email : "+myData.Email +" and Password : "+password;
+                // notifying the trainee upon adding to the batch
+                var receiver = myData.Email;
+                var subject = "Welcome to LMS";
+                var message = $@"
+                            Hi {myData.FullName},
 
-            await _emailSender.SendEmailAsync(receiver, subject, message);
-            users = await _context.Users.ToListAsync();
+                            You've been given access to LMS.
 
-            return new JsonResult(users);
+                            The credentials are:
+                            - **Email**: {myData.Email}
+                            - **Password**: {password}
+
+                            Best regards,
+                            Your LMS Team
+                            ";
+
+
+                await _emailSender.SendEmailAsync(receiver, subject, message);
+                users = await _context.Users.ToListAsync();
+
+                return new JsonResult(users);
+            }
+            catch (Exception ex)
+            {
+                ex.ToString();
+                return NotFound(ex.Message);
+            }
         }
 
         // Delete: delete the user using Id
@@ -105,7 +141,7 @@ namespace LMS.api.Controllers
             }
             else
             {
-                return new JsonResult("Error: User doesn't exist");
+                return NotFound("Error: User doesn't exist");
             }
 
             await _context.SaveChangesAsync();
