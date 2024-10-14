@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml.Linq;
 
 namespace LMS.api.Controllers
 {
@@ -153,10 +154,33 @@ namespace LMS.api.Controllers
         [HttpPut("{Id}")]
         public async Task<IActionResult> UpdateUsers(int Id, [FromBody] Users data)
         {
+            PasswordHasher hasher = new PasswordHasher();
+            var password = data.Password;
             var users = new List<Users>();
+            data.Password = hasher.ComputeHash(data.Password, SHA256.Create(), Encoding.UTF8.GetBytes("lms"));
+            
             data.Id = Id;
             _context.Update(data);
             await _context.SaveChangesAsync();
+            users = await _context.Users.ToListAsync();
+            // notifying the trainee upon adding to the batch
+            var receiver = data.Email;
+            var subject = "Your Password Updated";
+            var message = $@"
+                            Hi {data.FullName},
+
+                            
+
+                            The updated credentials are:
+                            - **Email**: {data.Email}
+                            - **Password**: {password}
+
+                            Best regards,
+                            Your LMS Team
+                            ";
+
+
+            await _emailSender.SendEmailAsync(receiver, subject, message);
             users = await _context.Users.ToListAsync();
             return new JsonResult(users);
         }
